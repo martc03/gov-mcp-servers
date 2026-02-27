@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.martc03/grant-finder",
+  "title": "Grant Finder",
+  "description": "Grants.gov search and USAspending grant data. 4 MCP tools for grant discovery.",
+  "repository": {
+    "url": "https://github.com/martc03/gov-mcp-servers",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://grant-finder-mcp.apify.actor/mcp"
+    }
+  ]
+}

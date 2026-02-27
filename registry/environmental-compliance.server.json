@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.martc03/environmental-compliance",
+  "title": "Environmental Compliance",
+  "description": "EPA air quality monitoring and HUD foreclosure data. 3 MCP tools for environmental and housing data.",
+  "repository": {
+    "url": "https://github.com/martc03/gov-mcp-servers",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://environmental-compliance-mcp.apify.actor/mcp"
+    }
+  ]
+}

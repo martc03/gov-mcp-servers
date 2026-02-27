@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.martc03/federal-financial-intel",
+  "title": "Federal Financial Intel",
+  "description": "SEC EDGAR, CFPB complaints, and BLS employment data. 4 tools.",
+  "repository": {
+    "url": "https://github.com/martc03/gov-mcp-servers",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://federal-financial-intel-mcp.apify.actor/mcp"
+    }
+  ]
+}

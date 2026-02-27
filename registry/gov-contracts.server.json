@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.martc03/gov-contracts",
+  "title": "Government Contracts",
+  "description": "SAM.gov contracts and USAspending awards. 4 procurement tools.",
+  "repository": {
+    "url": "https://github.com/martc03/gov-mcp-servers",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://gov-contracts-mcp.apify.actor/mcp"
+    }
+  ]
+}
