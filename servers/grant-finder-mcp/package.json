@@ -1,0 +1,25 @@
+{
+  "name": "grant-finder-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MCP server for federal grants - Grants.gov API",
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {
+    "apify": "^3.5.2",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "express": "^4.21.2",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@apify/tsconfig": "^0.1.1",
+    "@types/express": "^5.0.2",
+    "@types/node": "^22.15.32",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "npx tsx src/main.ts",
+    "build": "tsc",
+    "test": "echo \"No tests\" && exit 0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "court-records-mcp",
+  "title": "Court Records & Case Law MCP Server",
+  "description": "MCP server for US court records, opinions, and case law via CourtListener. Search federal and state court opinions, dockets, and judges. Legal research for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

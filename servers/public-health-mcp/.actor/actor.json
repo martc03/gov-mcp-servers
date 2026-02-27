@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "public-health-mcp",
+  "title": "Public Health Surveillance MCP Server",
+  "description": "MCP server for public health data from CDC and WHO. Search disease statistics, mortality data, vaccination rates, and global health indicators. Epidemiology intelligence for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

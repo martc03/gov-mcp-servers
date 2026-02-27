@@ -1,0 +1,14 @@
+{
+  "title": "Government Contracts MCP Server",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "samApiKey": {
+      "title": "SAM.gov API Key",
+      "type": "string",
+      "description": "API key from SAM.gov (register free at https://sam.gov/content/entity-registration). Required for SAM.gov tools. USASpending tools work without a key.",
+      "editor": "textfield",
+      "isSecret": true
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "grant-finder-mcp",
+  "title": "Grant & Funding Finder MCP Server",
+  "description": "MCP server for finding federal grants and funding opportunities. Search Grants.gov for active grants, filter by agency, category, and eligibility. Track deadlines and discover new funding sources for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

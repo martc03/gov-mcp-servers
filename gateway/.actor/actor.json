@@ -1,0 +1,11 @@
+{
+  "actorSpecification": 1,
+  "name": "us-gov-data-api",
+  "title": "US Government Data API",
+  "description": "REST gateway exposing 38 US government data endpoints. Covers safety recalls, disasters, financial data, immigration, environment, contracts, courts, health, regulations, grants, business entities, and competitive intelligence.",
+  "version": "1.0",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

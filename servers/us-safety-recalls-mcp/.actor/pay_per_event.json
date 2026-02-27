@@ -1,0 +1,9 @@
+[
+  {
+    "tool-request": {
+      "eventTitle": "Tool Request",
+      "eventDescription": "Charge for each MCP tool execution",
+      "eventPriceUsd": 0.01
+    }
+  }
+]

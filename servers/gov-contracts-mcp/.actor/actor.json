@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "gov-contracts-mcp",
+  "title": "Government Contracts MCP Server",
+  "description": "MCP server for US government contracts and federal spending. Search SAM.gov contract opportunities and USASpending.gov award data. Real-time procurement intelligence for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

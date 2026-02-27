@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "federal-financial-intel-mcp",
+  "title": "Federal Financial Intelligence MCP Server",
+  "description": "MCP server bundling SEC EDGAR filings, BLS employment statistics, and USDA crop prices. Financial and economic intelligence for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

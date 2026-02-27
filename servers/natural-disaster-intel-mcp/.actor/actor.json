@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "natural-disaster-intel-mcp",
+  "title": "Natural Disaster Intelligence MCP Server",
+  "description": "MCP server bundling FEMA disaster declarations, NOAA weather alerts, and USGS earthquake data. Real-time disaster monitoring for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

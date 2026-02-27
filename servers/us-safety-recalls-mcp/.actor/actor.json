@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "us-safety-recalls-mcp",
+  "title": "US Safety Recalls MCP Server",
+  "description": "MCP server bundling NHTSA vehicle recalls, FDA product recalls, and CFPB consumer complaints. Connect with any MCP-compatible AI assistant to search US safety data in real time.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

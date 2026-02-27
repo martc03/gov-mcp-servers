@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "immigration-travel-mcp",
+  "title": "Immigration & Travel MCP Server",
+  "description": "MCP server bundling US visa wait times, border crossing wait times, and FAA airport delays. Real-time travel intelligence for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

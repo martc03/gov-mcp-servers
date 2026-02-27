@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "business-entity-mcp",
+  "title": "Business Entity Search MCP Server",
+  "description": "MCP server for business entity search and due diligence. Search company registrations worldwide via OpenCorporates and SEC EDGAR company filings. KYC and compliance intelligence for AI assistants.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

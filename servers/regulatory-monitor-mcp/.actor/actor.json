@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "regulatory-monitor-mcp",
+  "title": "Regulatory Change Monitor MCP Server",
+  "description": "MCP server for monitoring US federal regulations. Search the Federal Register for new rules, proposed rules, notices, and presidential documents. Track regulatory changes by agency, topic, and significance.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

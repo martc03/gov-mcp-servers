@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "cybersecurity-vuln-mcp",
+  "title": "Cybersecurity Vulnerability Intelligence MCP Server",
+  "description": "MCP server aggregating NVD, CISA KEV, EPSS, and ATT&CK data. Enriched CVE lookups, exploit probability scoring, actively-exploited vulnerability tracking, and vendor-specific vulnerability search for AI-powered security operations.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

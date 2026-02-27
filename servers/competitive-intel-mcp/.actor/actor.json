@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "competitive-intel-mcp",
+  "title": "Competitive Intelligence MCP Server",
+  "description": "MCP server for competitive intelligence. Combines SEC EDGAR filings, news aggregation, and federal spending data to build company profiles. Track competitors, monitor M&A activity, and analyze government contract awards.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}

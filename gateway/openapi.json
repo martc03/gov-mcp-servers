@@ -1,0 +1,745 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "US Government Data API",
+    "description": "Unified REST API providing access to 45 US government data endpoints across 13 categories including cybersecurity vulnerability intelligence. Real-time data from NVD, CISA KEV, EPSS, NHTSA, FDA, CFPB, FEMA, NOAA, USGS, SEC, BLS, USDA, EPA, HUD, FAA, CBP, SAM.gov, CourtListener, CDC, WHO, Federal Register, Grants.gov, OpenCorporates, and more.",
+    "version": "1.1.0",
+    "contact": {
+      "name": "MARTC03",
+      "url": "https://apify.com/martc03"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://govdata-api.netlify.app",
+      "description": "Production (Netlify Proxy)"
+    }
+  ],
+  "paths": {
+    "/api/v1/safety/vehicle-recalls": {
+      "get": {
+        "operationId": "searchVehicleRecalls",
+        "summary": "Search NHTSA Vehicle Safety Recalls",
+        "description": "Search NHTSA vehicle safety recalls by make, model, and year. Returns recall campaigns with details on affected vehicles, defect summary, consequences, and remedies.",
+        "tags": ["Safety"],
+        "parameters": [
+          { "name": "make", "in": "query", "schema": { "type": "string" }, "description": "Vehicle make (e.g., FORD, TOYOTA)" },
+          { "name": "model", "in": "query", "schema": { "type": "string" }, "description": "Vehicle model (e.g., F-150, CAMRY)" },
+          { "name": "modelYear", "in": "query", "schema": { "type": "integer", "minimum": 1966, "maximum": 2027 }, "description": "Model year (default: current year)" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/safety/fda-recalls": {
+      "get": {
+        "operationId": "searchFdaRecalls",
+        "summary": "Search FDA Product Recalls",
+        "description": "Search FDA enforcement actions (recalls) for drugs, food, or medical devices.",
+        "tags": ["Safety"],
+        "parameters": [
+          { "name": "productType", "in": "query", "schema": { "type": "string", "enum": ["drug", "food", "device"] }, "description": "FDA product category" },
+          { "name": "searchText", "in": "query", "schema": { "type": "string" }, "description": "Free-text search" },
+          { "name": "classification", "in": "query", "schema": { "type": "string" }, "description": "Recall classification (Class I, II, III)" },
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Recall status (Ongoing, Completed, Terminated)" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/safety/consumer-complaints": {
+      "get": {
+        "operationId": "searchConsumerComplaints",
+        "summary": "Search CFPB Consumer Complaints",
+        "description": "Search the CFPB Consumer Complaint Database for complaints against financial companies.",
+        "tags": ["Safety"],
+        "parameters": [
+          { "name": "company", "in": "query", "schema": { "type": "string" }, "description": "Company name" },
+          { "name": "product", "in": "query", "schema": { "type": "string" }, "description": "Financial product type" },
+          { "name": "state", "in": "query", "schema": { "type": "string" }, "description": "US state abbreviation" },
+          { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Start date (YYYY-MM-DD)" },
+          { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "End date (YYYY-MM-DD)" },
+          { "name": "searchText", "in": "query", "schema": { "type": "string" }, "description": "Free-text search" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/disasters/fema-declarations": {
+      "get": {
+        "operationId": "searchFemaDeclarations",
+        "summary": "Search FEMA Disaster Declarations",
+        "description": "Search FEMA disaster declarations by state, type, and year range.",
+        "tags": ["Disasters"],
+        "parameters": [
+          { "name": "states", "in": "query", "schema": { "type": "string" }, "description": "State codes (e.g., CA, TX)" },
+          { "name": "incidentTypes", "in": "query", "schema": { "type": "string" }, "description": "Incident types" },
+          { "name": "yearFrom", "in": "query", "schema": { "type": "integer" }, "description": "Start year" },
+          { "name": "yearTo", "in": "query", "schema": { "type": "integer" }, "description": "End year" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/disasters/weather-alerts": {
+      "get": {
+        "operationId": "getWeatherAlerts",
+        "summary": "Get NOAA Weather Alerts",
+        "description": "Get real-time NOAA/NWS weather alerts by state, severity, and event type.",
+        "tags": ["Disasters"],
+        "parameters": [
+          { "name": "states", "in": "query", "schema": { "type": "string" }, "description": "State codes" },
+          { "name": "severity", "in": "query", "schema": { "type": "string" }, "description": "Alert severity" },
+          { "name": "urgency", "in": "query", "schema": { "type": "string" }, "description": "Alert urgency" },
+          { "name": "eventTypes", "in": "query", "schema": { "type": "string" }, "description": "Event types" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/disasters/earthquakes": {
+      "get": {
+        "operationId": "searchEarthquakes",
+        "summary": "Search USGS Earthquakes",
+        "description": "Search USGS earthquake data by magnitude, date range, and alert level.",
+        "tags": ["Disasters"],
+        "parameters": [
+          { "name": "minMagnitude", "in": "query", "schema": { "type": "number" }, "description": "Minimum magnitude" },
+          { "name": "maxMagnitude", "in": "query", "schema": { "type": "number" }, "description": "Maximum magnitude" },
+          { "name": "startDate", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Start date" },
+          { "name": "endDate", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "End date" },
+          { "name": "alertLevel", "in": "query", "schema": { "type": "string" }, "description": "Alert level" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/finance/sec-filings": {
+      "get": {
+        "operationId": "searchSecFilings",
+        "summary": "Search SEC EDGAR Filings",
+        "description": "Search SEC EDGAR filings (10-K, 10-Q, 8-K, etc.) by text, form type, and date.",
+        "tags": ["Finance"],
+        "parameters": [
+          { "name": "searchText", "in": "query", "schema": { "type": "string" }, "description": "Search text" },
+          { "name": "formTypes", "in": "query", "schema": { "type": "string" }, "description": "Comma-separated form types (10-K,10-Q,8-K)" },
+          { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Start date" },
+          { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "End date" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/finance/employment-stats": {
+      "get": {
+        "operationId": "getEmploymentStats",
+        "summary": "Get BLS Employment Statistics",
+        "description": "Get Bureau of Labor Statistics employment data by series and year.",
+        "tags": ["Finance"],
+        "parameters": [
+          { "name": "seriesId", "in": "query", "schema": { "type": "string" }, "description": "BLS series ID" },
+          { "name": "year", "in": "query", "schema": { "type": "integer" }, "description": "Year" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/finance/crop-prices": {
+      "get": {
+        "operationId": "getCropPrices",
+        "summary": "Get USDA Crop Prices",
+        "description": "Get USDA crop/commodity prices by product, state, and year.",
+        "tags": ["Finance"],
+        "parameters": [
+          { "name": "commodity", "in": "query", "schema": { "type": "string" }, "description": "Commodity name" },
+          { "name": "state", "in": "query", "schema": { "type": "string" }, "description": "State" },
+          { "name": "year", "in": "query", "schema": { "type": "integer" }, "description": "Year" },
+          { "name": "statistic", "in": "query", "schema": { "type": "string" }, "description": "Statistic type" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/travel/visa-wait-times": {
+      "get": {
+        "operationId": "getVisaWaitTimes",
+        "summary": "Get US Visa Wait Times",
+        "description": "Get US visa appointment wait times by country and visa category.",
+        "tags": ["Travel"],
+        "parameters": [
+          { "name": "country", "in": "query", "schema": { "type": "string" }, "description": "Country name" },
+          { "name": "visaCategory", "in": "query", "schema": { "type": "string" }, "description": "Visa category" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/travel/border-wait-times": {
+      "get": {
+        "operationId": "getBorderWaitTimes",
+        "summary": "Get CBP Border Wait Times",
+        "description": "Get Customs and Border Protection border crossing wait times.",
+        "tags": ["Travel"],
+        "parameters": [
+          { "name": "borderPort", "in": "query", "schema": { "type": "string" }, "description": "Border port name" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/travel/airport-delays": {
+      "get": {
+        "operationId": "getAirportDelays",
+        "summary": "Get FAA Airport Delays",
+        "description": "Get FAA airport delay and operational status information.",
+        "tags": ["Travel"],
+        "parameters": [
+          { "name": "airport", "in": "query", "schema": { "type": "string" }, "description": "Airport code (e.g., LAX, JFK)" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/environment/air-quality": {
+      "get": {
+        "operationId": "getAirQuality",
+        "summary": "Get EPA Air Quality Data",
+        "description": "Get EPA AirNow air quality index data by state and AQI range.",
+        "tags": ["Environment"],
+        "parameters": [
+          { "name": "states", "in": "query", "schema": { "type": "string" }, "description": "State codes" },
+          { "name": "minAqi", "in": "query", "schema": { "type": "integer" }, "description": "Minimum AQI" },
+          { "name": "maxAqi", "in": "query", "schema": { "type": "integer" }, "description": "Maximum AQI" },
+          { "name": "categories", "in": "query", "schema": { "type": "string" }, "description": "AQI categories" },
+          { "name": "parameters", "in": "query", "schema": { "type": "string" }, "description": "Pollutant parameters" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/environment/hud-foreclosures": {
+      "get": {
+        "operationId": "searchHudForeclosures",
+        "summary": "Search HUD Foreclosures",
+        "description": "Search HUD foreclosure property listings by state and county.",
+        "tags": ["Environment"],
+        "parameters": [
+          { "name": "state", "in": "query", "schema": { "type": "string" }, "description": "State" },
+          { "name": "county", "in": "query", "schema": { "type": "string" }, "description": "County" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/contracts/opportunities": {
+      "get": {
+        "operationId": "searchContractOpportunities",
+        "summary": "Search SAM.gov Contract Opportunities",
+        "description": "Search government contract opportunities (RFP/RFQ) on SAM.gov.",
+        "tags": ["Contracts"],
+        "parameters": [
+          { "name": "keyword", "in": "query", "schema": { "type": "string" }, "description": "Search keyword" },
+          { "name": "naicsCode", "in": "query", "schema": { "type": "string" }, "description": "NAICS code" },
+          { "name": "postedFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Posted from date" },
+          { "name": "postedTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Posted to date" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/contracts/spending": {
+      "get": {
+        "operationId": "searchContractSpending",
+        "summary": "Search USAspending Awards",
+        "description": "Search government spending data from USAspending.gov.",
+        "tags": ["Contracts"],
+        "parameters": [
+          { "name": "awardType", "in": "query", "schema": { "type": "string" }, "description": "Award type" },
+          { "name": "agency", "in": "query", "schema": { "type": "string" }, "description": "Agency name" },
+          { "name": "recipientName", "in": "query", "schema": { "type": "string" }, "description": "Recipient name" },
+          { "name": "minAmount", "in": "query", "schema": { "type": "number" }, "description": "Minimum amount" },
+          { "name": "maxAmount", "in": "query", "schema": { "type": "number" }, "description": "Maximum amount" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/contracts/entity-lookup": {
+      "get": {
+        "operationId": "lookupEntity",
+        "summary": "Lookup SAM.gov Entity",
+        "description": "Look up entity registration in SAM.gov by name.",
+        "tags": ["Contracts"],
+        "parameters": [
+          { "name": "entityName", "in": "query", "schema": { "type": "string" }, "description": "Entity name" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/courts/opinions": {
+      "get": {
+        "operationId": "searchCourtOpinions",
+        "summary": "Search Court Opinions",
+        "description": "Search court case opinions from CourtListener.",
+        "tags": ["Courts"],
+        "parameters": [
+          { "name": "query", "in": "query", "schema": { "type": "string" }, "description": "Search query" },
+          { "name": "court", "in": "query", "schema": { "type": "string" }, "description": "Court identifier" },
+          { "name": "dateAfter", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date after" },
+          { "name": "dateBefore", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date before" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/courts/dockets": {
+      "get": {
+        "operationId": "searchCourtDockets",
+        "summary": "Search Court Dockets",
+        "description": "Search federal and state court dockets.",
+        "tags": ["Courts"],
+        "parameters": [
+          { "name": "query", "in": "query", "schema": { "type": "string" }, "description": "Search query" },
+          { "name": "court", "in": "query", "schema": { "type": "string" }, "description": "Court identifier" },
+          { "name": "dateAfter", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date after" },
+          { "name": "dateBefore", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date before" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/courts/judges": {
+      "get": {
+        "operationId": "searchJudges",
+        "summary": "Search Federal Judges",
+        "description": "Search the federal judge directory.",
+        "tags": ["Courts"],
+        "parameters": [
+          { "name": "name", "in": "query", "schema": { "type": "string" }, "description": "Judge name" },
+          { "name": "court", "in": "query", "schema": { "type": "string" }, "description": "Court" },
+          { "name": "politicalAffiliation", "in": "query", "schema": { "type": "string" }, "description": "Political affiliation" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/health/cdc-data": {
+      "get": {
+        "operationId": "getCdcData",
+        "summary": "Get CDC Open Data",
+        "description": "Query CDC Open Data datasets using Socrata SoQL.",
+        "tags": ["Health"],
+        "parameters": [
+          { "name": "datasetId", "in": "query", "schema": { "type": "string" }, "description": "CDC dataset ID" },
+          { "name": "query", "in": "query", "schema": { "type": "string" }, "description": "SoQL query" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" },
+          { "name": "offset", "in": "query", "schema": { "type": "integer" }, "description": "Results offset" },
+          { "name": "orderBy", "in": "query", "schema": { "type": "string" }, "description": "Order by field" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/health/who-indicator": {
+      "get": {
+        "operationId": "getWhoIndicator",
+        "summary": "Get WHO Health Indicator",
+        "description": "Get WHO Global Health Observatory indicator data.",
+        "tags": ["Health"],
+        "parameters": [
+          { "name": "indicatorCode", "in": "query", "schema": { "type": "string" }, "description": "WHO indicator code" },
+          { "name": "country", "in": "query", "schema": { "type": "string" }, "description": "Country code" },
+          { "name": "year", "in": "query", "schema": { "type": "integer" }, "description": "Year" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/health/who-indicators": {
+      "get": {
+        "operationId": "listWhoIndicators",
+        "summary": "List WHO Indicator Codes",
+        "description": "List all available WHO GHO indicator codes.",
+        "tags": ["Health"],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/regulations/documents": {
+      "get": {
+        "operationId": "searchRegulations",
+        "summary": "Search Federal Register Documents",
+        "description": "Search Federal Register regulatory documents.",
+        "tags": ["Regulations"],
+        "parameters": [
+          { "name": "term", "in": "query", "schema": { "type": "string" }, "description": "Search term" },
+          { "name": "documentType", "in": "query", "schema": { "type": "string" }, "description": "Document type" },
+          { "name": "agency", "in": "query", "schema": { "type": "string" }, "description": "Agency" },
+          { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date from" },
+          { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date to" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/regulations/document/{documentNumber}": {
+      "get": {
+        "operationId": "getRegDocument",
+        "summary": "Get Federal Register Document",
+        "description": "Get full details of a Federal Register document by number.",
+        "tags": ["Regulations"],
+        "parameters": [
+          { "name": "documentNumber", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Federal Register document number" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/regulations/public-inspection": {
+      "get": {
+        "operationId": "searchPublicInspection",
+        "summary": "Search Public Inspection Files",
+        "description": "Search pre-publication Federal Register documents on public inspection.",
+        "tags": ["Regulations"],
+        "parameters": [
+          { "name": "agency", "in": "query", "schema": { "type": "string" }, "description": "Agency" },
+          { "name": "documentType", "in": "query", "schema": { "type": "string" }, "description": "Document type" },
+          { "name": "postedFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Posted from" },
+          { "name": "postedTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Posted to" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/regulations/agencies": {
+      "get": {
+        "operationId": "listAgencies",
+        "summary": "List Federal Agencies",
+        "description": "List all federal agencies in the Federal Register.",
+        "tags": ["Regulations"],
+        "parameters": [],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/grants/opportunities": {
+      "get": {
+        "operationId": "searchGrants",
+        "summary": "Search Grant Opportunities",
+        "description": "Search federal grant opportunities on Grants.gov.",
+        "tags": ["Grants"],
+        "parameters": [
+          { "name": "keyword", "in": "query", "schema": { "type": "string" }, "description": "Search keyword" },
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Grant status" },
+          { "name": "agency", "in": "query", "schema": { "type": "string" }, "description": "Agency" },
+          { "name": "fundingCategory", "in": "query", "schema": { "type": "string" }, "description": "Funding category" },
+          { "name": "fundingInstrument", "in": "query", "schema": { "type": "string" }, "description": "Funding instrument" },
+          { "name": "eligibility", "in": "query", "schema": { "type": "string" }, "description": "Eligibility" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" },
+          { "name": "offset", "in": "query", "schema": { "type": "integer" }, "description": "Results offset" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/grants/opportunity/{opportunityId}": {
+      "get": {
+        "operationId": "getGrantOpportunity",
+        "summary": "Get Grant Opportunity Details",
+        "description": "Get full details of a specific grant opportunity.",
+        "tags": ["Grants"],
+        "parameters": [
+          { "name": "opportunityId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Grants.gov opportunity ID" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/grants/by-agency": {
+      "get": {
+        "operationId": "searchGrantsByAgency",
+        "summary": "Search Grants by Agency",
+        "description": "Search grant opportunities filtered by federal agency.",
+        "tags": ["Grants"],
+        "parameters": [
+          { "name": "agencyCode", "in": "query", "schema": { "type": "string" }, "description": "Agency code" },
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Grant status" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/grants/filter-options": {
+      "get": {
+        "operationId": "getGrantFilterOptions",
+        "summary": "Get Grant Filter Options",
+        "description": "Get available filter values for grant searches.",
+        "tags": ["Grants"],
+        "parameters": [],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/entities/companies": {
+      "get": {
+        "operationId": "searchCompanies",
+        "summary": "Search Company Registry",
+        "description": "Search OpenCorporates company registry.",
+        "tags": ["Entities"],
+        "parameters": [
+          { "name": "name", "in": "query", "schema": { "type": "string" }, "description": "Company name" },
+          { "name": "jurisdiction", "in": "query", "schema": { "type": "string" }, "description": "Jurisdiction" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" },
+          { "name": "offset", "in": "query", "schema": { "type": "integer" }, "description": "Results offset" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/entities/company-details": {
+      "get": {
+        "operationId": "getCompanyDetails",
+        "summary": "Get Company Details",
+        "description": "Get company details including officers, filings, and history.",
+        "tags": ["Entities"],
+        "parameters": [
+          { "name": "companyNumber", "in": "query", "schema": { "type": "string" }, "description": "Company number" },
+          { "name": "jurisdiction", "in": "query", "schema": { "type": "string" }, "description": "Jurisdiction" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/entities/sec-companies": {
+      "get": {
+        "operationId": "searchSecCompanies",
+        "summary": "Search SEC Company Filings",
+        "description": "Search SEC EDGAR company filings.",
+        "tags": ["Entities"],
+        "parameters": [
+          { "name": "searchText", "in": "query", "schema": { "type": "string" }, "description": "Search text" },
+          { "name": "formTypes", "in": "query", "schema": { "type": "string" }, "description": "Comma-separated form types" },
+          { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date from" },
+          { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date to" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/intel/company-filings": {
+      "get": {
+        "operationId": "getCompanyFilings",
+        "summary": "Get Company SEC Filings",
+        "description": "Get SEC filings for competitive analysis.",
+        "tags": ["Intelligence"],
+        "parameters": [
+          { "name": "companyName", "in": "query", "schema": { "type": "string" }, "description": "Company name" },
+          { "name": "formType", "in": "query", "schema": { "type": "string" }, "description": "SEC form type" },
+          { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date from" },
+          { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date to" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/intel/company-news": {
+      "get": {
+        "operationId": "getCompanyNews",
+        "summary": "Get Company News",
+        "description": "Get latest news for a company via Google News RSS.",
+        "tags": ["Intelligence"],
+        "parameters": [
+          { "name": "companyName", "in": "query", "schema": { "type": "string" }, "description": "Company name" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/intel/company-contracts": {
+      "get": {
+        "operationId": "getCompanyContracts",
+        "summary": "Get Company Government Contracts",
+        "description": "Get USAspending government contracts for a company.",
+        "tags": ["Intelligence"],
+        "parameters": [
+          { "name": "companyName", "in": "query", "schema": { "type": "string" }, "description": "Company name" },
+          { "name": "awardType", "in": "query", "schema": { "type": "string" }, "description": "Award type" },
+          { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date from" },
+          { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Date to" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/intel/company-profile": {
+      "get": {
+        "operationId": "getCompanyProfile",
+        "summary": "Get Company Competitive Profile",
+        "description": "Get aggregated competitive intelligence profile (filings + news + contracts).",
+        "tags": ["Intelligence"],
+        "parameters": [
+          { "name": "companyName", "in": "query", "schema": { "type": "string" }, "description": "Company name" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/cyber/cve/{cveId}": {
+      "get": {
+        "operationId": "lookupCve",
+        "summary": "Enriched CVE Lookup",
+        "description": "Get comprehensive vulnerability intelligence for a CVE. Returns NVD details (CVSS scores, description, references), CISA KEV exploitation status, FIRST.org EPSS exploitation probability, and mapped MITRE ATT&CK techniques — all in a single call.",
+        "tags": ["Cybersecurity"],
+        "parameters": [
+          { "name": "cveId", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^CVE-\\d{4}-\\d{4,}$" }, "description": "CVE identifier (e.g., CVE-2021-44228)" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/cyber/search": {
+      "get": {
+        "operationId": "searchCves",
+        "summary": "Search CVE Database",
+        "description": "Search the NVD CVE database by keyword, severity, date range, and KEV status.",
+        "tags": ["Cybersecurity"],
+        "parameters": [
+          { "name": "keyword", "in": "query", "schema": { "type": "string" }, "description": "Search keyword (e.g., 'remote code execution', 'log4j')" },
+          { "name": "severity", "in": "query", "schema": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] }, "description": "CVSS severity level" },
+          { "name": "pubStartDate", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Published after (YYYY-MM-DD)" },
+          { "name": "pubEndDate", "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Published before (YYYY-MM-DD)" },
+          { "name": "hasKev", "in": "query", "schema": { "type": "boolean" }, "description": "Only return CVEs in CISA KEV catalog" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/cyber/kev/latest": {
+      "get": {
+        "operationId": "getKevLatest",
+        "summary": "Latest Exploited Vulnerabilities",
+        "description": "Get recently added entries from the CISA Known Exploited Vulnerabilities (KEV) catalog — vulnerabilities confirmed to be actively exploited in the wild.",
+        "tags": ["Cybersecurity"],
+        "parameters": [
+          { "name": "days", "in": "query", "schema": { "type": "integer", "default": 7 }, "description": "Look back N days (default 7)" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/cyber/kev/due-soon": {
+      "get": {
+        "operationId": "getKevDueSoon",
+        "summary": "KEV Remediation Deadlines",
+        "description": "Get CISA KEV entries with upcoming remediation deadlines. Federal agencies are required to patch these by the due date.",
+        "tags": ["Cybersecurity"],
+        "parameters": [
+          { "name": "days", "in": "query", "schema": { "type": "integer", "default": 14 }, "description": "Due within N days (default 14)" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/cyber/epss/top": {
+      "get": {
+        "operationId": "getEpssTop",
+        "summary": "Top Exploitation Probability CVEs",
+        "description": "Get CVEs with the highest EPSS (Exploit Prediction Scoring System) scores — the most likely to be exploited in the next 30 days.",
+        "tags": ["Cybersecurity"],
+        "parameters": [
+          { "name": "threshold", "in": "query", "schema": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.7 }, "description": "Minimum EPSS probability (0-1, default 0.7)" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/cyber/trending": {
+      "get": {
+        "operationId": "getTrendingCves",
+        "summary": "Trending Critical Vulnerabilities",
+        "description": "Get recently published critical and high severity CVEs from the NVD.",
+        "tags": ["Cybersecurity"],
+        "parameters": [
+          { "name": "days", "in": "query", "schema": { "type": "integer", "default": 3 }, "description": "Look back N days (default 3)" },
+          { "name": "severity", "in": "query", "schema": { "type": "string", "enum": ["HIGH", "CRITICAL"] }, "description": "Minimum severity (default: both HIGH and CRITICAL)" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    },
+    "/api/v1/cyber/vendor/{vendor}": {
+      "get": {
+        "operationId": "getCvesByVendor",
+        "summary": "CVEs by Vendor/Product",
+        "description": "Search CVEs for a specific vendor and optionally a product. Includes KEV exploitation status for each result.",
+        "tags": ["Cybersecurity"],
+        "parameters": [
+          { "name": "vendor", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Vendor name (e.g., Microsoft, Apache, Google)" },
+          { "name": "product", "in": "query", "schema": { "type": "string" }, "description": "Product name (e.g., Windows, Log4j, Chrome)" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 }, "description": "Results to return" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/SuccessResponse" }, "502": { "$ref": "#/components/responses/ErrorResponse" } }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "SuccessResponse": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "data": { "type": "object" },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "tool": { "type": "string" },
+                    "latencyMs": { "type": "integer" },
+                    "source": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "description": "Error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "error": { "type": "string" },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "tool": { "type": "string" },
+                    "latencyMs": { "type": "integer" },
+                    "source": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "RapidAPIKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-RapidAPI-Key"
+      }
+    }
+  },
+  "security": [
+    { "RapidAPIKey": [] }
+  ],
+  "tags": [
+    { "name": "Safety", "description": "Vehicle recalls, FDA recalls, consumer complaints" },
+    { "name": "Disasters", "description": "FEMA declarations, weather alerts, earthquakes" },
+    { "name": "Finance", "description": "SEC filings, employment stats, crop prices" },
+    { "name": "Travel", "description": "Visa wait times, border crossings, airport delays" },
+    { "name": "Environment", "description": "Air quality, HUD foreclosures" },
+    { "name": "Contracts", "description": "Government contracts, spending, entity lookup" },
+    { "name": "Courts", "description": "Court opinions, dockets, federal judges" },
+    { "name": "Health", "description": "CDC data, WHO indicators" },
+    { "name": "Regulations", "description": "Federal Register documents, public inspection" },
+    { "name": "Grants", "description": "Federal grant opportunities" },
+    { "name": "Entities", "description": "Company registries, SEC company filings" },
+    { "name": "Intelligence", "description": "Competitive intelligence: filings, news, contracts, profiles" },
+    { "name": "Cybersecurity", "description": "CVE lookup, CISA KEV exploited vulnerabilities, EPSS exploitation probability, NVD search, ATT&CK techniques" }
+  ]
+}
