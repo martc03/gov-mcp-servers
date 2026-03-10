@@ -12,6 +12,10 @@ const SEC_USER_AGENT =
   "apify-business-entity-mcp/1.0 (contact@example.com)";
 const GATEWAY_SECRET = process.env.GATEWAY_SECRET || "";
 
+// OpenCorporates API token — set OPENCORPORATES_API_KEY env var in Apify
+// to unlock higher rate limits. Falls back to anonymous (rate-limited) if absent.
+const OC_API_TOKEN = process.env.OPENCORPORATES_API_KEY || "";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -164,7 +168,7 @@ const mcpServer = new McpServer({
 
 mcpServer.tool(
   "entity_search_companies",
-  "Search OpenCorporates for company registrations worldwide. Returns company name, number, jurisdiction, incorporation date, status, and registry URL. Free tier, rate-limited.",
+  "Search OpenCorporates for company registrations worldwide. Returns company name, number, jurisdiction, incorporation date, status, and registry URL. Provide OPENCORPORATES_API_KEY env var for higher rate limits.",
   {
     query: z.string().describe("Company name to search"),
     jurisdiction: z
@@ -192,6 +196,8 @@ mcpServer.tool(
     if (status) params.set("current_status", status);
     params.set("per_page", String(limit));
     params.set("page", String(page));
+    // Attach API token if configured — unlocks higher rate limits
+    if (OC_API_TOKEN) params.set("api_token", OC_API_TOKEN);
 
     const url = `https://api.opencorporates.com/v0.4/companies/search?${params.toString()}`;
 
@@ -243,7 +249,9 @@ mcpServer.tool(
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  error: "Rate limited by OpenCorporates (HTTP 403). The free tier allows limited requests. Wait a moment and try again, or reduce query frequency.",
+                  error: OC_API_TOKEN
+                    ? "Rate limited by OpenCorporates (HTTP 403). Wait a moment and try again."
+                    : "Rate limited by OpenCorporates (HTTP 403). Set OPENCORPORATES_API_KEY env var in Apify for higher rate limits.",
                 },
                 null,
                 2,
@@ -286,7 +294,12 @@ mcpServer.tool(
       await Actor.charge({ eventName: "tool-request" });
     }
 
-    const url = `https://api.opencorporates.com/v0.4/companies/${encodeURIComponent(jurisdiction)}/${encodeURIComponent(companyNumber)}`;
+    const params = new URLSearchParams();
+    // Attach API token if configured
+    if (OC_API_TOKEN) params.set("api_token", OC_API_TOKEN);
+    const queryString = OC_API_TOKEN ? `?${params.toString()}` : "";
+
+    const url = `https://api.opencorporates.com/v0.4/companies/${encodeURIComponent(jurisdiction)}/${encodeURIComponent(companyNumber)}${queryString}`;
 
     try {
       const response = await fetchWithRetry(url, {
@@ -364,7 +377,9 @@ mcpServer.tool(
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  error: "Rate limited by OpenCorporates (HTTP 403). The free tier allows limited requests. Wait a moment and try again.",
+                  error: OC_API_TOKEN
+                    ? "Rate limited by OpenCorporates (HTTP 403). Wait a moment and try again."
+                    : "Rate limited by OpenCorporates (HTTP 403). Set OPENCORPORATES_API_KEY env var in Apify for higher rate limits.",
                 },
                 null,
                 2,
@@ -512,6 +527,7 @@ app.get("/", (_req, res) => {
   res.json({
     status: "ok",
     server: "business-entity-mcp",
+    apiTokenConfigured: !!OC_API_TOKEN,
   });
 });
 
@@ -549,4 +565,5 @@ const port = parseInt(
 );
 app.listen(port, () => {
   console.log(`Business Entity MCP on port ${port}`);
+  console.log(`OpenCorporates API token: ${OC_API_TOKEN ? "configured ✓" : "not set (anonymous/rate-limited)"}`);
 });
