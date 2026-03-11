@@ -8,84 +8,113 @@ import { z } from "zod";
 // Constants
 // ---------------------------------------------------------------------------
 
-const SEC_USER_AGENT =
-  "apify-business-entity-mcp/1.0 (contact@example.com)";
+const SEC_USER_AGENT = "apify-business-entity-mcp/2.0 (contact@example.com)";
 const GATEWAY_SECRET = process.env.GATEWAY_SECRET || "";
 
-// OpenCorporates API token — set OPENCORPORATES_API_KEY env var in Apify
-// to unlock higher rate limits. Falls back to anonymous (rate-limited) if absent.
-const OC_API_TOKEN = process.env.OPENCORPORATES_API_KEY || "";
+// Companies House (UK) — free API key at https://developer.company-information.service.gov.uk/
+const CH_API_KEY = process.env.COMPANIES_HOUSE_API_KEY || "";
+
+// GLEIF API — completely free, no key required
+const GLEIF_BASE = "https://api.gleif.org/api/v1";
+
+// Companies House API — free with registration
+const CH_BASE = "https://api.company-information.service.gov.uk";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface OpenCorporatesCompany {
-  name: string;
+interface GleifLeiRecord {
+  type: string;
+  id: string;
+  attributes: {
+    lei: string;
+    entity: {
+      legalName: { name: string; language: string | null };
+      otherNames?: Array<{ name: string; language: string | null; type: string }>;
+      transliteratedOtherNames?: unknown[];
+      legalAddress: {
+        language: string | null;
+        addressLines: string[];
+        addressNumber: string | null;
+        addressNumberWithinBuilding: string | null;
+        mailRouting: string | null;
+        city: string;
+        region: string | null;
+        country: string;
+        postalCode: string | null;
+      };
+      headquartersAddress: {
+        language: string | null;
+        addressLines: string[];
+        city: string;
+        region: string | null;
+        country: string;
+        postalCode: string | null;
+      };
+      registeredAt?: { id: string; other: string | null };
+      registeredAs?: string | null;
+      jurisdiction: string | null;
+      category: string | null;
+      legalForm?: { id: string; other: string | null };
+      associatedEntity?: { lei: string | null; name: string | null };
+      status: string;
+      expiration?: { date: string | null; reason: string | null };
+      successorEntity?: { lei: string | null; name: string | null };
+      creationDate?: string | null;
+    };
+    registration: {
+      initialRegistrationDate: string;
+      lastUpdateDate: string;
+      status: string;
+      nextRenewalDate: string;
+      managingLou: string;
+      corroborationLevel: string;
+      validatedAt?: { id: string; other: string | null };
+      validatedAs?: string | null;
+    };
+    bic?: string[] | null;
+  };
+}
+
+interface GleifSearchResponse {
+  data: GleifLeiRecord[];
+  meta: {
+    goldenCopy: { publishDate: string };
+    pagination: {
+      currentPage: number;
+      perPage: number;
+      from: number;
+      to: number;
+      total: number;
+      lastPage: number;
+    };
+  };
+}
+
+interface ChCompany {
+  company_name: string;
   company_number: string;
-  jurisdiction_code: string;
-  incorporation_date: string | null;
-  dissolution_date: string | null;
-  company_type: string | null;
-  registry_url: string | null;
-  current_status: string | null;
-  registered_address?: {
-    street_address?: string;
+  company_status?: string;
+  company_type?: string;
+  date_of_creation?: string;
+  registered_office_address?: {
+    address_line_1?: string;
+    address_line_2?: string;
     locality?: string;
     region?: string;
     postal_code?: string;
     country?: string;
-  } | null;
-  opencorporates_url: string;
+  };
+  jurisdiction?: string;
+  sic_codes?: string[];
 }
 
-interface OpenCorporatesSearchResponse {
-  results: {
-    companies: Array<{ company: OpenCorporatesCompany }>;
-    total_count: number;
-    per_page: number;
-    page: number;
-  };
-}
-
-interface OpenCorporatesDetailCompany extends OpenCorporatesCompany {
-  officers?: Array<{
-    officer: {
-      name: string;
-      position: string;
-      start_date: string | null;
-      end_date: string | null;
-    };
-  }>;
-  industry_codes?: Array<{
-    industry_code: {
-      code: string;
-      description: string;
-      code_scheme_name: string;
-    };
-  }>;
-  previous_names?: Array<{
-    company_name: string;
-    con_date: string | null;
-  }>;
-  source?: {
-    publisher: string;
-    url: string;
-    retrieved_at: string;
-  };
-  filings?: Array<{
-    filing: {
-      title: string;
-      date: string;
-      url: string;
-    };
-  }>;
-}
-
-interface OpenCorporatesDetailResponse {
-  results: {
-    company: OpenCorporatesDetailCompany;
-  };
+interface ChSearchResponse {
+  items: ChCompany[];
+  total_results: number;
+  page_number: number;
+  items_per_page: number;
 }
 
 interface SecHit {
@@ -116,20 +145,6 @@ function buildSecFilingUrl(entityId: string, adsh: string): string {
   return `https://www.sec.gov/Archives/edgar/data/${entityId}/${noDashes}/${adsh}-index.htm`;
 }
 
-function formatAddress(
-  addr?: OpenCorporatesCompany["registered_address"],
-): string | null {
-  if (!addr) return null;
-  const parts = [
-    addr.street_address,
-    addr.locality,
-    addr.region,
-    addr.postal_code,
-    addr.country,
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join(", ") : null;
-}
-
 async function fetchWithRetry(
   url: string,
   options: RequestInit,
@@ -145,14 +160,36 @@ async function fetchWithRetry(
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
-      throw new Error(
-        `HTTP ${response.status} from ${url}: ${body.slice(0, 300)}`,
-      );
+      throw new Error(`HTTP ${response.status} from ${url}: ${body.slice(0, 300)}`);
     }
 
     return response;
   }
   throw new Error(`Failed after ${retries} attempts for ${url}`);
+}
+
+function formatGleifAddress(addr: GleifLeiRecord["attributes"]["entity"]["legalAddress"]): string {
+  const parts = [
+    ...(addr.addressLines ?? []),
+    addr.city,
+    addr.region,
+    addr.postalCode,
+    addr.country,
+  ].filter(Boolean);
+  return parts.join(", ");
+}
+
+function formatChAddress(addr?: ChCompany["registered_office_address"]): string | null {
+  if (!addr) return null;
+  const parts = [
+    addr.address_line_1,
+    addr.address_line_2,
+    addr.locality,
+    addr.region,
+    addr.postal_code,
+    addr.country,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -161,64 +198,64 @@ async function fetchWithRetry(
 
 const mcpServer = new McpServer({
   name: "business-entity-mcp",
-  version: "1.0.0",
+  version: "2.0.0",
 });
 
-// ---- Tool 1: entity_search_companies ----
+// ---- Tool 1: entity_search_global ----
 
 mcpServer.tool(
-  "entity_search_companies",
-  "Search OpenCorporates for company registrations worldwide. Returns company name, number, jurisdiction, incorporation date, status, and registry URL. Provide OPENCORPORATES_API_KEY env var for higher rate limits.",
+  "entity_search_global",
+  "Search the GLEIF global LEI (Legal Entity Identifier) database for companies worldwide. Free, no API key required. Returns company name, LEI, jurisdiction, legal address, status, and registration details. Best for international companies and financial entities.",
   {
     query: z.string().describe("Company name to search"),
-    jurisdiction: z
+    country: z
       .string()
       .optional()
-      .describe(
-        "Jurisdiction code like 'us_ca' (California), 'us_ny' (New York), 'gb' (UK), 'us' (all US)",
-      ),
+      .describe("ISO 2-letter country code filter (e.g. 'US', 'GB', 'DE')"),
     status: z
-      .enum(["Active", "Inactive", "Dissolved"])
+      .enum(["ACTIVE", "INACTIVE", "PENDING_TRANSFER", "PENDING_ARCHIVAL"])
       .optional()
-      .describe("Company status filter"),
-    limit: z.number().int().min(1).max(30).default(10),
+      .describe("Entity status filter"),
+    limit: z.number().int().min(1).max(50).default(10),
     page: z.number().int().min(1).default(1),
     _gatewayToken: z.string().optional().describe("Internal gateway token"),
   },
-  async ({ query, jurisdiction, status, limit, page, _gatewayToken }) => {
+  async ({ query, country, status, limit, page, _gatewayToken }) => {
     if (!_gatewayToken || _gatewayToken !== GATEWAY_SECRET) {
       await Actor.charge({ eventName: "tool-request" });
     }
 
     const params = new URLSearchParams();
-    params.set("q", query);
-    if (jurisdiction) params.set("jurisdiction_code", jurisdiction);
-    if (status) params.set("current_status", status);
-    params.set("per_page", String(limit));
-    params.set("page", String(page));
-    // Attach API token if configured — unlocks higher rate limits
-    if (OC_API_TOKEN) params.set("api_token", OC_API_TOKEN);
+    params.set("filter[entity.legalName]", query);
+    params.set("page[size]", String(limit));
+    params.set("page[number]", String(page));
+    if (country) params.set("filter[entity.legalAddress.country]", country);
+    if (status) params.set("filter[registration.status]", status);
 
-    const url = `https://api.opencorporates.com/v0.4/companies/search?${params.toString()}`;
+    const url = `${GLEIF_BASE}/lei-records?${params.toString()}`;
 
     try {
       const response = await fetchWithRetry(url, {
-        headers: { Accept: "application/json" },
+        headers: { Accept: "application/vnd.api+json" },
       });
 
-      const data = (await response.json()) as OpenCorporatesSearchResponse;
-      const companiesRaw = data?.results?.companies ?? [];
+      const data = (await response.json()) as GleifSearchResponse;
+      const records = data?.data ?? [];
 
-      const companies = companiesRaw.map(({ company }) => ({
-        name: company.name,
-        companyNumber: company.company_number,
-        jurisdiction: company.jurisdiction_code,
-        incorporationDate: company.incorporation_date,
-        dissolutionDate: company.dissolution_date,
-        companyType: company.company_type,
-        currentStatus: company.current_status,
-        registryUrl: company.registry_url,
-        opencorporatesUrl: company.opencorporates_url,
+      const companies = records.map((rec) => ({
+        lei: rec.attributes.lei,
+        legalName: rec.attributes.entity.legalName.name,
+        jurisdiction: rec.attributes.entity.jurisdiction,
+        country: rec.attributes.entity.legalAddress.country,
+        status: rec.attributes.entity.status,
+        registrationStatus: rec.attributes.registration.status,
+        legalAddress: formatGleifAddress(rec.attributes.entity.legalAddress),
+        category: rec.attributes.entity.category,
+        legalForm: rec.attributes.entity.legalForm?.id ?? null,
+        registeredAs: rec.attributes.entity.registeredAs ?? null,
+        creationDate: rec.attributes.entity.creationDate ?? null,
+        lastUpdated: rec.attributes.registration.lastUpdateDate,
+        gleifUrl: `https://www.gleif.org/lei/${rec.attributes.lei}`,
       }));
 
       return {
@@ -227,9 +264,10 @@ mcpServer.tool(
             type: "text" as const,
             text: JSON.stringify(
               {
-                totalCount: data?.results?.total_count ?? 0,
-                page: data?.results?.page ?? page,
-                perPage: data?.results?.per_page ?? limit,
+                totalCount: data?.meta?.pagination?.total ?? 0,
+                page: data?.meta?.pagination?.currentPage ?? page,
+                perPage: data?.meta?.pagination?.perPage ?? limit,
+                source: "GLEIF Global LEI Database (free)",
                 companies,
               },
               null,
@@ -241,173 +279,189 @@ mcpServer.tool(
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-
-      if (msg.includes("403")) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  error: OC_API_TOKEN
-                    ? "Rate limited by OpenCorporates (HTTP 403). Wait a moment and try again."
-                    : "Rate limited by OpenCorporates (HTTP 403). Set OPENCORPORATES_API_KEY env var in Apify for higher rate limits.",
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          isError: true,
-        };
-      }
-
       return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify({ error: msg }, null, 2),
-          },
-        ],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: msg }, null, 2) }],
         isError: true,
       };
     }
   },
 );
 
-// ---- Tool 2: entity_get_company_details ----
+// ---- Tool 2: entity_get_lei_record ----
 
 mcpServer.tool(
-  "entity_get_company_details",
-  "Get detailed company information from OpenCorporates by jurisdiction and company number. Returns officers, industry codes, previous names, registered address, and filing history.",
+  "entity_get_lei_record",
+  "Get full GLEIF LEI record details for a company by its LEI code. Returns complete entity data including addresses, registration authority, legal form, and relationship links. Free, no API key required.",
   {
-    jurisdiction: z
-      .string()
-      .describe("Jurisdiction code (e.g., 'us_ca', 'us_de', 'gb')"),
-    companyNumber: z
-      .string()
-      .describe("Company registration number"),
+    lei: z.string().describe("20-character Legal Entity Identifier (LEI) code"),
     _gatewayToken: z.string().optional().describe("Internal gateway token"),
   },
-  async ({ jurisdiction, companyNumber, _gatewayToken }) => {
+  async ({ lei, _gatewayToken }) => {
     if (!_gatewayToken || _gatewayToken !== GATEWAY_SECRET) {
       await Actor.charge({ eventName: "tool-request" });
     }
 
-    const params = new URLSearchParams();
-    // Attach API token if configured
-    if (OC_API_TOKEN) params.set("api_token", OC_API_TOKEN);
-    const queryString = OC_API_TOKEN ? `?${params.toString()}` : "";
-
-    const url = `https://api.opencorporates.com/v0.4/companies/${encodeURIComponent(jurisdiction)}/${encodeURIComponent(companyNumber)}${queryString}`;
+    const url = `${GLEIF_BASE}/lei-records/${encodeURIComponent(lei)}`;
 
     try {
       const response = await fetchWithRetry(url, {
-        headers: { Accept: "application/json" },
+        headers: { Accept: "application/vnd.api+json" },
       });
 
-      const data = (await response.json()) as OpenCorporatesDetailResponse;
-      const company = data?.results?.company;
+      const data = (await response.json()) as { data: GleifLeiRecord };
+      const rec = data?.data;
 
-      if (!company) {
+      if (!rec) {
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                { error: "Company not found" },
-                null,
-                2,
-              ),
-            },
-          ],
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "LEI record not found" }, null, 2) }],
           isError: true,
         };
       }
 
-      const officers = (company.officers ?? []).slice(0, 10).map((o) => ({
-        name: o.officer.name,
-        position: o.officer.position,
-        startDate: o.officer.start_date,
-        endDate: o.officer.end_date,
-      }));
-
-      const industryCodes = (company.industry_codes ?? []).map((ic) => ({
-        code: ic.industry_code.code,
-        description: ic.industry_code.description,
-        scheme: ic.industry_code.code_scheme_name,
-      }));
-
-      const previousNames = (company.previous_names ?? []).map((pn) => ({
-        name: pn.company_name,
-        changeDate: pn.con_date,
-      }));
-
       const result = {
-        name: company.name,
-        companyNumber: company.company_number,
-        jurisdiction: company.jurisdiction_code,
-        incorporationDate: company.incorporation_date,
-        companyType: company.company_type,
-        currentStatus: company.current_status,
-        registeredAddress: formatAddress(company.registered_address),
-        officers,
-        industryCodes,
-        previousNames,
-        registryUrl: company.registry_url,
-        opencorporatesUrl: company.opencorporates_url,
+        lei: rec.attributes.lei,
+        legalName: rec.attributes.entity.legalName.name,
+        otherNames: (rec.attributes.entity.otherNames ?? []).map((n) => n.name),
+        jurisdiction: rec.attributes.entity.jurisdiction,
+        category: rec.attributes.entity.category,
+        legalForm: rec.attributes.entity.legalForm?.id ?? null,
+        status: rec.attributes.entity.status,
+        creationDate: rec.attributes.entity.creationDate ?? null,
+        legalAddress: formatGleifAddress(rec.attributes.entity.legalAddress),
+        headquartersAddress: formatGleifAddress(rec.attributes.entity.headquartersAddress),
+        registeredAs: rec.attributes.entity.registeredAs ?? null,
+        registeredAt: rec.attributes.entity.registeredAt?.id ?? null,
+        registration: {
+          status: rec.attributes.registration.status,
+          initialDate: rec.attributes.registration.initialRegistrationDate,
+          lastUpdate: rec.attributes.registration.lastUpdateDate,
+          nextRenewal: rec.attributes.registration.nextRenewalDate,
+          managingLou: rec.attributes.registration.managingLou,
+          corroborationLevel: rec.attributes.registration.corroborationLevel,
+        },
+        gleifUrl: `https://www.gleif.org/lei/${rec.attributes.lei}`,
       };
+
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+        isError: false,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: msg }, null, 2) }],
+        isError: true,
+      };
+    }
+  },
+);
+
+// ---- Tool 3: entity_search_uk_companies ----
+
+mcpServer.tool(
+  "entity_search_uk_companies",
+  "Search UK Companies House for British company registrations. Returns company name, number, status, type, incorporation date, and registered address. Requires COMPANIES_HOUSE_API_KEY env var (free registration at https://developer.company-information.service.gov.uk/).",
+  {
+    query: z.string().describe("Company name to search"),
+    status: z
+      .enum(["active", "dissolved", "liquidation", "administration", "voluntary-arrangement"])
+      .optional()
+      .describe("Company status filter"),
+    limit: z.number().int().min(1).max(100).default(10),
+    page: z.number().int().min(1).default(1),
+    _gatewayToken: z.string().optional().describe("Internal gateway token"),
+  },
+  async ({ query, status, limit, page, _gatewayToken }) => {
+    if (!_gatewayToken || _gatewayToken !== GATEWAY_SECRET) {
+      await Actor.charge({ eventName: "tool-request" });
+    }
+
+    if (!CH_API_KEY) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                error: "COMPANIES_HOUSE_API_KEY not configured. Get a free API key at https://developer.company-information.service.gov.uk/ and set it as an environment variable in Apify.",
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    const params = new URLSearchParams();
+    params.set("q", query);
+    params.set("items_per_page", String(limit));
+    params.set("start_index", String((page - 1) * limit));
+    if (status) params.set("restrictions", status);
+
+    const url = `${CH_BASE}/search/companies?${params.toString()}`;
+
+    // Companies House uses Basic Auth: API key as username, empty password
+    const authHeader = "Basic " + Buffer.from(`${CH_API_KEY}:`).toString("base64");
+
+    try {
+      const response = await fetchWithRetry(url, {
+        headers: {
+          Authorization: authHeader,
+          Accept: "application/json",
+        },
+      });
+
+      const data = (await response.json()) as ChSearchResponse;
+      const items = data?.items ?? [];
+
+      const companies = items.map((c) => ({
+        companyName: c.company_name,
+        companyNumber: c.company_number,
+        status: c.company_status ?? null,
+        type: c.company_type ?? null,
+        incorporationDate: c.date_of_creation ?? null,
+        jurisdiction: c.jurisdiction ?? "United Kingdom",
+        registeredAddress: formatChAddress(c.registered_office_address),
+        sicCodes: c.sic_codes ?? [],
+        companiesHouseUrl: `https://find-and-update.company-information.service.gov.uk/company/${c.company_number}`,
+      }));
 
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify(result, null, 2),
+            text: JSON.stringify(
+              {
+                totalCount: data?.total_results ?? 0,
+                page,
+                perPage: limit,
+                source: "UK Companies House (free API)",
+                companies,
+              },
+              null,
+              2,
+            ),
           },
         ],
         isError: false,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-
-      if (msg.includes("403")) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  error: OC_API_TOKEN
-                    ? "Rate limited by OpenCorporates (HTTP 403). Wait a moment and try again."
-                    : "Rate limited by OpenCorporates (HTTP 403). Set OPENCORPORATES_API_KEY env var in Apify for higher rate limits.",
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          isError: true,
-        };
-      }
-
       return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify({ error: msg }, null, 2),
-          },
-        ],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: msg }, null, 2) }],
         isError: true,
       };
     }
   },
 );
 
-// ---- Tool 3: entity_search_sec_companies ----
+// ---- Tool 4: entity_search_sec_companies ----
 
 mcpServer.tool(
   "entity_search_sec_companies",
-  "Search SEC EDGAR for US public company filings and CIK lookup. Returns entity name, form type, filing date, description, and direct filing URL. Useful for KYC and compliance checks on public companies.",
+  "Search SEC EDGAR for US public company filings and CIK lookup. Returns entity name, form type, filing date, description, and direct filing URL. Useful for KYC and compliance checks on US public companies. Free, no API key required.",
   {
     companyName: z.string().describe("Company name to search"),
     formTypes: z
@@ -415,14 +469,8 @@ mcpServer.tool(
       .optional()
       .default(["10-K", "10-Q", "8-K"])
       .describe("SEC form types like 10-K, 10-Q, 8-K"),
-    dateFrom: z
-      .string()
-      .optional()
-      .describe("Start date YYYY-MM-DD"),
-    dateTo: z
-      .string()
-      .optional()
-      .describe("End date YYYY-MM-DD"),
+    dateFrom: z.string().optional().describe("Start date YYYY-MM-DD"),
+    dateTo: z.string().optional().describe("End date YYYY-MM-DD"),
     limit: z.number().int().min(1).max(50).default(10),
     _gatewayToken: z.string().optional().describe("Internal gateway token"),
   },
@@ -433,9 +481,7 @@ mcpServer.tool(
 
     const params = new URLSearchParams();
     params.set("q", companyName);
-    if (formTypes && formTypes.length > 0) {
-      params.set("forms", formTypes.join(","));
-    }
+    if (formTypes && formTypes.length > 0) params.set("forms", formTypes.join(","));
     if (dateFrom || dateTo) {
       params.set("dateRange", "custom");
       if (dateFrom) params.set("startdt", dateFrom);
@@ -449,12 +495,7 @@ mcpServer.tool(
     try {
       const response = await fetchWithRetry(
         url,
-        {
-          headers: {
-            "User-Agent": SEC_USER_AGENT,
-            Accept: "application/json",
-          },
-        },
+        { headers: { "User-Agent": SEC_USER_AGENT, Accept: "application/json" } },
         3,
       );
 
@@ -471,29 +512,18 @@ mcpServer.tool(
           fileDate: s.file_date ?? "",
           description: s.file_description ?? "",
           periodOfReport: s.period_of_report ?? "",
-          filingUrl:
-            entityId && adsh ? buildSecFilingUrl(entityId, adsh) : "",
+          filingUrl: entityId && adsh ? buildSecFilingUrl(entityId, adsh) : "",
         };
       });
 
       return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(filings, null, 2),
-          },
-        ],
+        content: [{ type: "text" as const, text: JSON.stringify(filings, null, 2) }],
         isError: false,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify({ error: msg }, null, 2),
-          },
-        ],
+        content: [{ type: "text" as const, text: JSON.stringify({ error: msg }, null, 2) }],
         isError: true,
       };
     }
@@ -506,18 +536,21 @@ mcpServer.tool(
 
 await Actor.init();
 
-// ---------------------------------------------------------------------------
-// Non-standby health check: exit cleanly so Apify marks the run as SUCCEEDED
-// ---------------------------------------------------------------------------
 if (process.env.APIFY_META_ORIGIN !== "STANDBY") {
-    console.log("Non-standby run detected — running health check...");
-    await Actor.pushData({
-        status: "healthy",
-        server: "business-entity-mcp",
-        timestamp: new Date().toISOString(),
-        message: "MCP server is healthy. Use standby mode for MCP tool access.",
-    });
-    await Actor.exit("Health check passed — use standby mode for MCP access.");
+  console.log("Non-standby run detected — running health check...");
+  await Actor.pushData({
+    status: "healthy",
+    server: "business-entity-mcp",
+    version: "2.0.0",
+    timestamp: new Date().toISOString(),
+    dataSources: {
+      gleif: "active (free, no key)",
+      companiesHouse: CH_API_KEY ? "active (key configured)" : "inactive (set COMPANIES_HOUSE_API_KEY)",
+      secEdgar: "active (free, no key)",
+    },
+    message: "MCP server is healthy. Use standby mode for MCP tool access.",
+  });
+  await Actor.exit("Health check passed — use standby mode for MCP access.");
 }
 
 const app = express();
@@ -527,7 +560,12 @@ app.get("/", (_req, res) => {
   res.json({
     status: "ok",
     server: "business-entity-mcp",
-    apiTokenConfigured: !!OC_API_TOKEN,
+    version: "2.0.0",
+    dataSources: {
+      gleif: "active (free)",
+      companiesHouse: CH_API_KEY ? "active" : "needs COMPANIES_HOUSE_API_KEY",
+      secEdgar: "active (free)",
+    },
   });
 });
 
@@ -537,33 +575,24 @@ app.post("/mcp", async (req, res) => {
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
     });
-    res.on("close", () => {
-      transport.close();
-    });
+    res.on("close", () => { transport.close(); });
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
-    const msg =
-      error instanceof Error ? error.message : String(error);
+    const msg = error instanceof Error ? error.message : String(error);
     if (!res.headersSent) {
       res.status(500).json({ error: "Internal server error", detail: msg });
     }
   }
 });
 
-app.get("/mcp", (_req, res) => {
-  res.status(405).json({ error: "Use POST" });
-});
+app.get("/mcp", (_req, res) => { res.status(405).json({ error: "Use POST" }); });
+app.delete("/mcp", (_req, res) => { res.status(405).json({ error: "Not supported" }); });
 
-app.delete("/mcp", (_req, res) => {
-  res.status(405).json({ error: "Not supported" });
-});
-
-const port = parseInt(
-  process.env.APIFY_ACTOR_STANDBY_PORT || "4321",
-  10,
-);
+const port = parseInt(process.env.APIFY_ACTOR_STANDBY_PORT || "4321", 10);
 app.listen(port, () => {
-  console.log(`Business Entity MCP on port ${port}`);
-  console.log(`OpenCorporates API token: ${OC_API_TOKEN ? "configured ✓" : "not set (anonymous/rate-limited)"}`);
+  console.log(`Business Entity MCP v2.0.0 on port ${port}`);
+  console.log(`GLEIF: active (free)`);
+  console.log(`Companies House: ${CH_API_KEY ? "active ✓" : "needs COMPANIES_HOUSE_API_KEY"}`);
+  console.log(`SEC EDGAR: active (free)`);
 });
