@@ -1,1 +1,14 @@
-{"title":"Business Entity Search MCP Server","type":"object","schemaVersion":1,"properties":{}}
+{
+  "title": "Business Entity Search MCP Server",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "companiesHouseApiKey": {
+      "title": "Companies House API Key (UK)",
+      "type": "string",
+      "description": "Free API key for UK Companies House lookups. Get one at https://developer.company-information.service.gov.uk/ — select REST and leave IP/domain blank. Falls back to COMPANIES_HOUSE_API_KEY env var if not provided.",
+      "editor": "textfield",
+      "isSecret": true
+    }
+  }
+}
