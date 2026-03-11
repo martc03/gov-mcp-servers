@@ -11,8 +11,10 @@ import { z } from "zod";
 const SEC_USER_AGENT = "apify-business-entity-mcp/2.0 (contact@example.com)";
 const GATEWAY_SECRET = process.env.GATEWAY_SECRET || "";
 
-// Companies House (UK) — free API key at https://developer.company-information.service.gov.uk/
-const CH_API_KEY = process.env.COMPANIES_HOUSE_API_KEY || "";
+// Companies House API key — reads from Apify Input first, falls back to env var
+// Get a free key at https://developer.company-information.service.gov.uk/
+const input = await Actor.getInput<{ companiesHouseApiKey?: string }>() ?? {};
+const CH_API_KEY = input.companiesHouseApiKey || process.env.COMPANIES_HOUSE_API_KEY || "";
 
 // GLEIF API — completely free, no key required
 const GLEIF_BASE = "https://api.gleif.org/api/v1";
